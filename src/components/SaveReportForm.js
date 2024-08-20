@@ -1,8 +1,8 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { Card, CardTitle, Form, Input, TextArea, Button } from './styles/CommonStyles';
+import { Card, CardTitle, Form, Input, Button } from './styles/CommonStyles';
 
-const SaveReportForm = ({ control, onSubmit }) => (
+const SaveReportForm = ({ control, onSubmit, onPreview }) => (
   <Card>
     <CardTitle>Save Report</CardTitle>
     <Form onSubmit={onSubmit}>
@@ -10,23 +10,29 @@ const SaveReportForm = ({ control, onSubmit }) => (
         name="reportName"
         control={control}
         defaultValue=""
-        rules={{ required: 'Report name is required' }}
-        render={({ field, fieldState: { error } }) => (
-          <>
-            <Input {...field} placeholder="Report Name" />
-            {error && <span>{error.message}</span>}
-          </>
-        )}
+        render={({ field }) => <Input {...field} placeholder="Report Name" />}
       />
-      <Controller
-        name="reportDescription"
-        control={control}
-        defaultValue=""
-        render={({ field }) => <TextArea {...field} placeholder="Report Description" />}
-      />
+      <Button type="button" onClick={onPreview}>Preview Report</Button> {/* Add Preview Button */}
       <Button type="submit">Save Report</Button>
     </Form>
   </Card>
 );
 
 export default SaveReportForm;
+
+// const SaveReportForm = ({ control, onSubmit }) => (
+//   <Card>
+//     <CardTitle>Save Report</CardTitle>
+//     <Form onSubmit={onSubmit}>
+//       <Controller
+//         name="reportName"
+//         control={control}
+//         defaultValue=""
+//         render={({ field }) => <Input {...field} placeholder="Report Name" />}
+//       />
+//       <Button type="submit">Save Report</Button>
+//     </Form>
+//   </Card>
+// );
+
+// export default SaveReportForm;

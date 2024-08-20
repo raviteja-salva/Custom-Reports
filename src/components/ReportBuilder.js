@@ -8,7 +8,9 @@ import ChartPreviewSection from './ChartPreviewSection';
 import SaveReportForm from './SaveReportForm';
 import ScheduleReportForm from './ScheduleReportForm';
 import SavedReportsList from './SavedReportsList';
-import ShareReportForm from './ShareReportForm';
+import { saveAs } from 'file-saver';
+import { utils, write } from 'xlsx';
+import jsPDF from 'jspdf';
 
 const ReportBuilder = () => {
   const [selectedFields, setSelectedFields] = useState([]);
@@ -17,7 +19,6 @@ const ReportBuilder = () => {
   const [previewData, setPreviewData] = useState(null);
   const [savedReports, setSavedReports] = useState([]);
   const [randomData, setRandomData] = useState([]);
-  const [scheduleSettings, setScheduleSettings] = useState(null);
 
   const { control, handleSubmit } = useForm();
 
@@ -55,50 +56,71 @@ const ReportBuilder = () => {
   };
 
   const handleScheduleReport = (data) => {
-    setScheduleSettings(data);
     // Implement scheduling logic here
     console.log('Scheduling report:', data);
   };
 
-  const handleShareReport = (data) => {
-    // Implement sharing logic here
-    console.log('Sharing report:', data);
+  const handleExport = (format) => {
+    const reportData = previewData || randomData; // Use previewData if available
+  
+    if (format === 'pdf') {
+      const doc = new jsPDF();
+      doc.text('Custom Report', 20, 20);
+      reportData.forEach((item, index) => {
+        doc.text(`${index + 1}. ${item.candidateName} - ${item.jobTitle}`, 20, 30 + index * 10);
+      });
+      doc.save('report.pdf');
+    } else if (format === 'excel') {
+      const ws = utils.json_to_sheet(reportData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Report');
+      const wbout = write(wb, { bookType: 'xlsx', type: 'array' });
+      saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'report.xlsx');
+    } else if (format === 'csv') {
+      const csvData = reportData.map(item => `${item.candidateName},${item.jobTitle}`).join('\n');
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, 'report.csv');
+    }
   };
 
-  const handleExport = (format) => {
-    // Implement export logic here
-    console.log('Exporting to', format);
+  const handlePreviewReport = () => {
+    const filteredData = randomData.filter(item => {
+      // Apply the same filtering logic as in applyFilters
+      if (filters.experienceMin && item.experience < parseInt(filters.experienceMin)) return false;
+      if (filters.experienceMax && item.experience > parseInt(filters.experienceMax)) return false;
+      if (filters.skills && !filters.skills.split(',').some(skill => item.skills.includes(skill.trim()))) return false;
+      return true;
+    });
+    setPreviewData(filteredData);
   };
+  
 
   return (
     <>
-    <GlobalStyle />
-    <Container>
-      <Title>Custom Recruitment Report Builder</Title>
-      <FieldSelector
-        fields={recruitmentFields}
-        onFieldSelection={handleFieldSelection}
-      />
-      <FilterForm
-        control={control}
-        onSubmit={handleSubmit(applyFilters)}
-      />
-      <ChartPreviewSection
-        previewData={previewData}
-        chartType={chartType}
-        onChartTypeChange={setChartType}
-      />
-       <SaveReportForm
+      <GlobalStyle />
+      <Container>
+        <Title>Custom Recruitment Report Builder</Title>
+        <FieldSelector
+          fields={recruitmentFields}
+          onFieldSelection={handleFieldSelection}
+        />
+        <FilterForm
+          control={control}
+          onSubmit={handleSubmit(applyFilters)}
+        />
+        <ChartPreviewSection
+          previewData={previewData}
+          chartType={chartType}
+          onChartTypeChange={setChartType}
+        />
+        <SaveReportForm
           control={control}
           onSubmit={handleSubmit(handleSaveReport)}
+          onPreview={handlePreviewReport}
         />
         <ScheduleReportForm
           control={control}
           onSubmit={handleSubmit(handleScheduleReport)}
-        />
-        <ShareReportForm
-          control={control}
-          onSubmit={handleSubmit(handleShareReport)}
         />
         <SavedReportsList
           savedReports={savedReports}

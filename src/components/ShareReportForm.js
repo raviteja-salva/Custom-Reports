@@ -2,31 +2,19 @@ import React from 'react';
 import { Controller } from 'react-hook-form';
 import { Card, CardTitle, Form, Input, Button } from './styles/CommonStyles';
 
-const ShareReportForm = ({ control, onSubmit }) => (
+const SaveReportForm = ({ control, onSubmit }) => (
   <Card>
-    <CardTitle>Share Report</CardTitle>
+    <CardTitle>Save Report</CardTitle>
     <Form onSubmit={onSubmit}>
       <Controller
-        name="recipientEmail"
+        name="reportName"
         control={control}
         defaultValue=""
-        rules={{ required: 'Recipient email is required', pattern: /^\S+@\S+$/i }}
-        render={({ field, fieldState: { error } }) => (
-          <>
-            <Input {...field} placeholder="Recipient Email" type="email" />
-            {error && <span>{error.message}</span>}
-          </>
-        )}
+        render={({ field }) => <Input {...field} placeholder="Report Name" />}
       />
-      <Controller
-        name="message"
-        control={control}
-        defaultValue=""
-        render={({ field }) => <Input {...field} placeholder="Optional Message" />}
-      />
-      <Button type="submit">Share Report</Button>
+      <Button type="submit">Save Report</Button>
     </Form>
   </Card>
 );
 
-export default ShareReportForm;
+export default SaveReportForm;
