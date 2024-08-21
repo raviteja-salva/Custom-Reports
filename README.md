@@ -8,6 +8,9 @@ import ChartPreviewSection from './ChartPreviewSection';
 import SaveReportForm from './SaveReportForm';
 import ScheduleReportForm from './ScheduleReportForm';
 import SavedReportsList from './SavedReportsList';
+import { saveAs } from 'file-saver';
+import { utils, write } from 'xlsx';
+import jsPDF from 'jspdf';
 
 const ReportBuilder = () => {
   const [selectedFields, setSelectedFields] = useState([]);
@@ -17,7 +20,7 @@ const ReportBuilder = () => {
   const [savedReports, setSavedReports] = useState([]);
   const [randomData, setRandomData] = useState([]);
 
-  const { control, handleSubmit } = useForm();
+  const { control, handleSubmit, reset } = useForm();
 
   useEffect(() => {
     setRandomData(generateRandomData(100));
@@ -25,29 +28,41 @@ const ReportBuilder = () => {
     setSavedReports(loadedReports);
   }, []);
 
-  const handleFieldSelection = (params) => {
-    setSelectedFields(params);
+  const handleFieldSelection = (fields) => {
+    setSelectedFields(fields);
   };
 
   const applyFilters = (data) => {
     setFilters(data);
-    const filteredData = randomData.filter(item => {
-      if (data.experienceMin && item.experience < parseInt(data.experienceMin)) return false;
-      if (data.experienceMax && item.experience > parseInt(data.experienceMax)) return false;
-      if (data.skills && !data.skills.split(',').some(skill => item.skills.includes(skill.trim()))) return false;
-      return true;
-    });
-    setPreviewData(filteredData);
+    handlePreviewReport(data);
   };
 
   const handleSaveReport = (data) => {
     const reportConfig = {
+      id: editingReport ? editingReport.id : Date.now(),
       name: data.reportName,
       fields: selectedFields,
       filters,
       chartType,
     };
-    const updatedReports = [...savedReports, reportConfig];
+    
+    let updatedReports;
+    if (editingReport) {
+      updatedReports = savedReports.map(report => 
+        report.id === editingReport.id ? reportConfig : report
+      );
+    } else {
+      updatedReports = [...savedReports, reportConfig];
+    }
+    
+    setSavedReports(updatedReports);
+    localStorage.setItem('savedReports', JSON.stringify(updatedReports));
+    setEditingReport(null);
+    reset();
+  };
+
+  const handleDeleteReport = (reportId) => {
+    const updatedReports = savedReports.filter(report => report.id !== reportId);
     setSavedReports(updatedReports);
     localStorage.setItem('savedReports', JSON.stringify(updatedReports));
   };
@@ -58,8 +73,51 @@ const ReportBuilder = () => {
   };
 
   const handleExport = (format) => {
-    // Implement export logic here
-    console.log('Exporting to', format);
+    const reportData = previewData || randomData;
+    
+    if (format === 'pdf') {
+      const doc = new jsPDF();
+      doc.text('Custom Report', 20, 20);
+      reportData.forEach((item, index) => {
+        doc.text(`${index + 1}. ${item.candidateName} - ${item.jobTitle}`, 20, 30 + index * 10);
+      });
+      doc.save('report.pdf');
+    } else if (format === 'excel') {
+      const ws = utils.json_to_sheet(reportData);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Report');
+      const wbout = write(wb, { bookType: 'xlsx', type: 'array' });
+      saveAs(new Blob([wbout], { type: 'application/octet-stream' }), 'report.xlsx');
+    } else if (format === 'csv') {
+      const csvData = reportData.map(item => `${item.candidateName},${item.jobTitle}`).join('\n');
+      const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, 'report.csv');
+    }
+  };
+
+  const handlePreviewReport = (currentFilters = filters) => {
+    const filteredData = randomData.filter(item => {
+      for (const [key, value] of Object.entries(currentFilters)) {
+        if (value && item[key] !== undefined) {
+          if (typeof value === 'string' && !item[key].toLowerCase().includes(value.toLowerCase())) {
+            return false;
+          } else if (typeof value === 'number' && item[key] !== value) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    
+    const previewDataWithSelectedFields = filteredData.map(item => {
+      const selectedData = {};
+      selectedFields.forEach(field => {
+        selectedData[field] = item[field];
+      });
+      return selectedData;
+    });
+    
+    setPreviewData(previewDataWithSelectedFields);
   };
 
   return (
@@ -69,10 +127,12 @@ const ReportBuilder = () => {
         <Title>Custom Recruitment Report Builder</Title>
         <FieldSelector
           fields={recruitmentFields}
+          selectedFields={selectedFields}
           onFieldSelection={handleFieldSelection}
         />
         <FilterForm
           control={control}
+          filters={filters}
           onSubmit={handleSubmit(applyFilters)}
         />
         <ChartPreviewSection
@@ -83,6 +143,8 @@ const ReportBuilder = () => {
         <SaveReportForm
           control={control}
           onSubmit={handleSubmit(handleSaveReport)}
+          onPreview={handlePreviewReport}
+          editingReport={editingReport}
         />
         <ScheduleReportForm
           control={control}
@@ -91,6 +153,7 @@ const ReportBuilder = () => {
         <SavedReportsList
           savedReports={savedReports}
           onExport={handleExport}
+          onDelete={handleDeleteReport}
         />
       </Container>
     </>
@@ -198,27 +261,9 @@ const ChartPreview = ({ data, type }) => {
 
 export default ChartPreview;
 
-import React from 'react';
-import { Card, CardTitle, ButtonGroup, Button } from './styles/CommonStyles';
-import ChartPreview from './ChartPreview';
-
-const ChartPreviewSection = ({ previewData, chartType, onChartTypeChange }) => (
-  <Card>
-    <CardTitle>Chart Preview</CardTitle>
-    <ChartPreview data={previewData} type={chartType} />
-    <ButtonGroup>
-      <Button onClick={() => onChartTypeChange('bar')}>Bar Chart</Button>
-      <Button onClick={() => onChartTypeChange('line')}>Line Graph</Button>
-      <Button onClick={() => onChartTypeChange('pie')}>Pie Chart</Button>
-    </ButtonGroup>
-  </Card>
-);
-
-export default ChartPreviewSection;
-
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Card, CardTitle } from './styles/CommonStyles';
+import { Card, CardTitle, Button, PlusButton } from './styles/CommonStyles';
 
 const FieldGroup = styled.div`
   margin-bottom: 20px;
@@ -237,6 +282,8 @@ const FieldList = styled.ul`
 
 const FieldItem = styled.li`
   margin-bottom: 5px;
+  display: flex;
+  align-items: center;
 `;
 
 const FieldCheckbox = styled.input`
@@ -246,9 +293,36 @@ const FieldCheckbox = styled.input`
 const FieldLabel = styled.label`
   font-size: 14px;
   color: #444;
+  flex-grow: 1;
 `;
 
-const FieldSelector = ({ fields, onFieldSelection }) => (
+const CustomFieldInput = styled.input`
+  margin-right: 10px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+`;
+
+const FieldSelector = ({ fields, selectedFields, onFieldSelection }) => {
+  const [customFields, setCustomFields] = useState([]);
+  const [newFieldName, setNewFieldName] = useState('');
+
+  const handleFieldToggle = (field) => {
+    const updatedFields = selectedFields.includes(field)
+      ? selectedFields.filter(f => f !== field)
+      : [...selectedFields, field];
+    onFieldSelection(updatedFields);
+  };
+
+  const handleAddCustomField = () => {
+    if (newFieldName && !customFields.includes(newFieldName)) {
+      setCustomFields([...customFields, newFieldName]);
+      setNewFieldName('');
+      handleFieldToggle(newFieldName);
+    }
+  };
+
+  return (
     <Card>
       <CardTitle>Select Fields</CardTitle>
       {Object.entries(fields).map(([groupName, groupFields]) => (
@@ -259,19 +333,46 @@ const FieldSelector = ({ fields, onFieldSelection }) => (
               <FieldItem key={field}>
                 <FieldCheckbox
                   type="checkbox"
-                  id={field}
-                  onChange={(e) => onFieldSelection(field, e.target.checked)}
+                  checked={selectedFields.includes(field)}
+                  onChange={() => handleFieldToggle(field)}
                 />
-                <FieldLabel htmlFor={field}>{field}</FieldLabel>
+                <FieldLabel>{field}</FieldLabel>
               </FieldItem>
             ))}
           </FieldList>
         </FieldGroup>
       ))}
+      <FieldGroup>
+        <FieldGroupTitle>Custom Fields</FieldGroupTitle>
+        <FieldList>
+          {customFields.map((field) => (
+            <FieldItem key={field}>
+              <FieldCheckbox
+                type="checkbox"
+                checked={selectedFields.includes(field)}
+                onChange={() => handleFieldToggle(field)}
+              />
+              <FieldLabel>{field}</FieldLabel>
+            </FieldItem>
+          ))}
+        </FieldList>
+        <div>
+          <CustomFieldInput
+            type="text"
+            value={newFieldName}
+            onChange={(e) => setNewFieldName(e.target.value)}
+            placeholder="Enter new field name"
+          />
+          <PlusButton onClick={handleAddCustomField}>+</PlusButton>
+        </div>
+      </FieldGroup>
     </Card>
-);
+  );
+};
 
 export default FieldSelector;
+
+
 
 import React from 'react';
 import { Controller } from 'react-hook-form';
@@ -371,7 +472,7 @@ import React from 'react';
 import { Controller } from 'react-hook-form';
 import { Card, CardTitle, Form, Input, Button } from './styles/CommonStyles';
 
-const SaveReportForm = ({ control, onSubmit }) => (
+const SaveReportForm = ({ control, onSubmit, onPreview }) => (
   <Card>
     <CardTitle>Save Report</CardTitle>
     <Form onSubmit={onSubmit}>
@@ -381,6 +482,7 @@ const SaveReportForm = ({ control, onSubmit }) => (
         defaultValue=""
         render={({ field }) => <Input {...field} placeholder="Report Name" />}
       />
+      <Button type="button" onClick={onPreview}>Preview Report</Button> {/* Add Preview Button */}
       <Button type="submit">Save Report</Button>
     </Form>
   </Card>

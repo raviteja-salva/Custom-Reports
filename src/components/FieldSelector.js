@@ -1,36 +1,76 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { Card, CardTitle } from './styles/CommonStyles';
+import { Card, CardTitle, Button, PlusButton, StyledSelect, Input } from './styles/CommonStyles';
 
 const FieldGroup = styled.div`
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 8px;
 `;
 
 const FieldGroupTitle = styled.h3`
-  font-size: 18px;
-  color: #333;
-  margin-bottom: 10px;
+  font-size: 20px;
+  color: #2c3e50;
+  margin-bottom: 16px;
+  border-bottom: 2px solid #e0e0e0;
+  padding-bottom: 8px;
 `;
 
 const FieldList = styled.ul`
   list-style-type: none;
   padding: 0;
+  margin: 0;
 `;
 
 const FieldItem = styled.li`
-  margin-bottom: 5px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
 `;
 
 const FieldCheckbox = styled.input`
-  margin-right: 10px;
+  margin-right: 12px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 `;
 
 const FieldLabel = styled.label`
-  font-size: 14px;
-  color: #444;
+  font-size: 16px;
+  color: #34495e;
+  flex-grow: 1;
 `;
 
-const FieldSelector = ({ fields, onFieldSelection }) => (
+
+const FieldSelector = ({ fields, selectedFields, onFieldSelection, savedTemplates, onSaveTemplate, onSelectTemplate }) => {
+  const [customFields, setCustomFields] = useState([]);
+  const [newFieldName, setNewFieldName] = useState('');
+  const [templateName, setTemplateName] = useState('');
+
+  const handleFieldToggle = (field) => {
+    const updatedFields = selectedFields.includes(field)
+      ? selectedFields.filter(f => f !== field)
+      : [...selectedFields, field];
+    onFieldSelection(updatedFields);
+  };
+
+  const handleAddCustomField = () => {
+    if (newFieldName && !customFields.includes(newFieldName)) {
+      setCustomFields([...customFields, newFieldName]);
+      setNewFieldName('');
+      handleFieldToggle(newFieldName);
+    }
+  };
+
+  const handleSaveTemplate = () => {
+    if (templateName) {
+      onSaveTemplate(templateName, selectedFields);
+      setTemplateName('');
+    }
+  };
+
+  return (
     <Card>
       <CardTitle>Select Fields</CardTitle>
       {Object.entries(fields).map(([groupName, groupFields]) => (
@@ -41,17 +81,67 @@ const FieldSelector = ({ fields, onFieldSelection }) => (
               <FieldItem key={field}>
                 <FieldCheckbox
                   type="checkbox"
-                  id={field}
-                  onChange={(e) => onFieldSelection(field, e.target.checked)}
+                  checked={selectedFields.includes(field)}
+                  onChange={() => handleFieldToggle(field)}
                 />
-                <FieldLabel htmlFor={field}>{field}</FieldLabel>
+                <FieldLabel>{field}</FieldLabel>
               </FieldItem>
             ))}
           </FieldList>
         </FieldGroup>
       ))}
+      <FieldGroup>
+        <FieldGroupTitle>Custom Fields</FieldGroupTitle>
+        <FieldList>
+          {customFields.map((field) => (
+            <FieldItem key={field}>
+              <FieldCheckbox
+                type="checkbox"
+                checked={selectedFields.includes(field)}
+                onChange={() => handleFieldToggle(field)}
+              />
+              <FieldLabel>{field}</FieldLabel>
+            </FieldItem>
+          ))}
+        </FieldList>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Input
+            type="text"
+            value={newFieldName}
+            onChange={(e) => setNewFieldName(e.target.value)}
+            placeholder="Enter new field name"
+          />
+          <PlusButton onClick={handleAddCustomField}>+</PlusButton>
+        </div>
+      </FieldGroup>
+
+      <FieldGroup>
+        <FieldGroupTitle>Save Template</FieldGroupTitle>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Input
+            type="text"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            placeholder="Template Name"
+          />
+          <Button onClick={handleSaveTemplate}>Save Template</Button>
+        </div>
+      </FieldGroup>
+
+      <FieldGroup>
+        <FieldGroupTitle>Select Template</FieldGroupTitle>
+        <StyledSelect onChange={(e) => onSelectTemplate(e.target.value)}>
+          <option value="">Select a template</option>
+          {savedTemplates.map((template) => (
+            <option key={template.name} value={template.name}>
+              {template.name}
+            </option>
+          ))}
+        </StyledSelect>
+      </FieldGroup>
     </Card>
-);
+  );
+};
 
 export default FieldSelector;
 
@@ -62,74 +152,445 @@ export default FieldSelector;
 
 
 
+
+
+
+// import React, { useState } from 'react';
+// import styled from 'styled-components';
+// import { Card, CardTitle, Button, PlusButton, StyledSelect } from './styles/CommonStyles';
+
+// const FieldGroup = styled.div`
+//   margin-bottom: 20px;
+// `;
+
+// const FieldGroupTitle = styled.h3`
+//   font-size: 18px;
+//   color: #333;
+//   margin-bottom: 10px;
+// `;
+
+// const FieldList = styled.ul`
+//   list-style-type: none;
+//   padding: 0;
+// `;
+
+// const FieldItem = styled.li`
+//   margin-bottom: 5px;
+//   display: flex;
+//   align-items: center;
+// `;
+
+// const FieldCheckbox = styled.input`
+//   margin-right: 10px;
+// `;
+
+// const FieldLabel = styled.label`
+//   font-size: 14px;
+//   color: #444;
+//   flex-grow: 1;
+// `;
+
+// const CustomFieldInput = styled.input`
+//   margin-right: 10px;
+//   padding: 5px;
+//   border: 1px solid #ccc;
+//   border-radius: 4px;
+// `;
+
+// const FieldSelector = ({ fields, selectedFields, onFieldSelection, savedTemplates, onSaveTemplate, onSelectTemplate }) => {
+//   const [customFields, setCustomFields] = useState([]);
+//   const [newFieldName, setNewFieldName] = useState('');
+//   const [templateName, setTemplateName] = useState('');
+
+//   const handleFieldToggle = (field) => {
+//     const updatedFields = selectedFields.includes(field)
+//       ? selectedFields.filter(f => f !== field)
+//       : [...selectedFields, field];
+//     onFieldSelection(updatedFields);
+//   };
+
+//   const handleAddCustomField = () => {
+//     if (newFieldName && !customFields.includes(newFieldName)) {
+//       setCustomFields([...customFields, newFieldName]);
+//       setNewFieldName('');
+//       handleFieldToggle(newFieldName);
+//     }
+//   };
+
+//   const handleSaveTemplate = () => {
+//     if (templateName) {
+//       onSaveTemplate(templateName, selectedFields);
+//       setTemplateName('');
+//     }
+//   };
+
+//   return (
+//     <Card>
+//       <CardTitle>Select Fields</CardTitle>
+//       {Object.entries(fields).map(([groupName, groupFields]) => (
+//         <FieldGroup key={groupName}>
+//           <FieldGroupTitle>{groupName}</FieldGroupTitle>
+//           <FieldList>
+//             {groupFields.map((field) => (
+//               <FieldItem key={field}>
+//                 <FieldCheckbox
+//                   type="checkbox"
+//                   checked={selectedFields.includes(field)}
+//                   onChange={() => handleFieldToggle(field)}
+//                 />
+//                 <FieldLabel>{field}</FieldLabel>
+//               </FieldItem>
+//             ))}
+//           </FieldList>
+//         </FieldGroup>
+//       ))}
+//       <FieldGroup>
+//         <FieldGroupTitle>Custom Fields</FieldGroupTitle>
+//         <FieldList>
+//           {customFields.map((field) => (
+//             <FieldItem key={field}>
+//               <FieldCheckbox
+//                 type="checkbox"
+//                 checked={selectedFields.includes(field)}
+//                 onChange={() => handleFieldToggle(field)}
+//               />
+//               <FieldLabel>{field}</FieldLabel>
+//             </FieldItem>
+//           ))}
+//         </FieldList>
+//         <div>
+//           <CustomFieldInput
+//             type="text"
+//             value={newFieldName}
+//             onChange={(e) => setNewFieldName(e.target.value)}
+//             placeholder="Enter new field name"
+//           />
+//           <PlusButton onClick={handleAddCustomField}>+</PlusButton>
+//         </div>
+//       </FieldGroup>
+
+//       <FieldGroup>
+//         <FieldGroupTitle>Save Template</FieldGroupTitle>
+//         <CustomFieldInput
+//           type="text"
+//           value={templateName}
+//           onChange={(e) => setTemplateName(e.target.value)}
+//           placeholder="Template Name"
+//         />
+//         <Button onClick={handleSaveTemplate}>Save Template</Button>
+//       </FieldGroup>
+
+//       <FieldGroup>
+//         <FieldGroupTitle>Select Template</FieldGroupTitle>
+//         <StyledSelect onChange={(e) => onSelectTemplate(e.target.value)}>
+//           <option value="">Select a template</option>
+//           {savedTemplates.map((template) => (
+//             <option key={template.name} value={template.name}>
+//               {template.name}
+//             </option>
+//           ))}
+//         </StyledSelect>
+//       </FieldGroup>
+//     </Card>
+//   );
+// };
+
+// export default FieldSelector;
+
+
+
+// import React, { useState } from 'react';
+// import styled from 'styled-components';
+// import { Card, CardTitle, Button, PlusButton } from './styles/CommonStyles';
+
+// const FieldGroup = styled.div`
+//   margin-bottom: 20px;
+// `;
+
+// const FieldGroupTitle = styled.h3`
+//   font-size: 18px;
+//   color: #333;
+//   margin-bottom: 10px;
+// `;
+
+// const FieldList = styled.ul`
+//   list-style-type: none;
+//   padding: 0;
+// `;
+
+// const FieldItem = styled.li`
+//   margin-bottom: 5px;
+//   display: flex;
+//   align-items: center;
+// `;
+
+// const FieldCheckbox = styled.input`
+//   margin-right: 10px;
+// `;
+
+// const FieldLabel = styled.label`
+//   font-size: 14px;
+//   color: #444;
+//   flex-grow: 1;
+// `;
+
+// const CustomFieldInput = styled.input`
+//   margin-right: 10px;
+//   padding: 5px;
+//   border: 1px solid #ccc;
+//   border-radius: 4px;
+// `;
+
+// const FieldSelector = ({ fields, selectedFields, onFieldSelection }) => {
+//   const [customFields, setCustomFields] = useState([]);
+//   const [newFieldName, setNewFieldName] = useState('');
+
+//   const handleFieldToggle = (field) => {
+//     const updatedFields = selectedFields.includes(field)
+//       ? selectedFields.filter(f => f !== field)
+//       : [...selectedFields, field];
+//     onFieldSelection(updatedFields);
+//   };
+
+//   const handleAddCustomField = () => {
+//     if (newFieldName && !customFields.includes(newFieldName)) {
+//       setCustomFields([...customFields, newFieldName]);
+//       setNewFieldName('');
+//       handleFieldToggle(newFieldName);
+//     }
+//   };
+
+//   return (
+//     <Card>
+//       <CardTitle>Select Fields</CardTitle>
+//       {Object.entries(fields).map(([groupName, groupFields]) => (
+//         <FieldGroup key={groupName}>
+//           <FieldGroupTitle>{groupName}</FieldGroupTitle>
+//           <FieldList>
+//             {groupFields.map((field) => (
+//               <FieldItem key={field}>
+//                 <FieldCheckbox
+//                   type="checkbox"
+//                   checked={selectedFields.includes(field)}
+//                   onChange={() => handleFieldToggle(field)}
+//                 />
+//                 <FieldLabel>{field}</FieldLabel>
+//               </FieldItem>
+//             ))}
+//           </FieldList>
+//         </FieldGroup>
+//       ))}
+//       <FieldGroup>
+//         <FieldGroupTitle>Custom Fields</FieldGroupTitle>
+//         <FieldList>
+//           {customFields.map((field) => (
+//             <FieldItem key={field}>
+//               <FieldCheckbox
+//                 type="checkbox"
+//                 checked={selectedFields.includes(field)}
+//                 onChange={() => handleFieldToggle(field)}
+//               />
+//               <FieldLabel>{field}</FieldLabel>
+//             </FieldItem>
+//           ))}
+//         </FieldList>
+//         <div>
+//           <CustomFieldInput
+//             type="text"
+//             value={newFieldName}
+//             onChange={(e) => setNewFieldName(e.target.value)}
+//             placeholder="Enter new field name"
+//           />
+//           <PlusButton onClick={handleAddCustomField}>+</PlusButton>
+//         </div>
+//       </FieldGroup>
+//     </Card>
+//   );
+// };
+
+// export default FieldSelector;
+
+
+
+
+
+
+
+
+
+
+
+// import React, { useState } from 'react';
+// import styled from 'styled-components';
+// import { Card, CardTitle, Button, PlusButton } from './styles/CommonStyles';
+
+// const FieldGroup = styled.div`
+//   margin-bottom: 20px;
+// `;
+
+// const FieldGroupTitle = styled.h3`
+//   font-size: 18px;
+//   color: #333;
+//   margin-bottom: 10px;
+// `;
+
+// const FieldList = styled.ul`
+//   list-style-type: none;
+//   padding: 0;
+// `;
+
+// const FieldItem = styled.li`
+//   margin-bottom: 5px;
+//   display: flex;
+//   align-items: center;
+// `;
+
+// const FieldCheckbox = styled.input`
+//   margin-right: 10px;
+// `;
+
+// const FieldLabel = styled.label`
+//   font-size: 14px;
+//   color: #444;
+//   flex-grow: 1;
+// `;
+
+// const CustomFieldInput = styled.input`
+//   margin-right: 10px;
+//   padding: 5px;
+//   border: 1px solid #ccc;
+//   border-radius: 4px;
+// `;
+
+// const FieldSelector = ({ fields, selectedFields, onFieldSelection }) => {
+//   const [customFields, setCustomFields] = useState([]);
+//   const [newFieldName, setNewFieldName] = useState('');
+
+//   const handleFieldToggle = (field) => {
+//     const updatedFields = selectedFields.includes(field)
+//       ? selectedFields.filter(f => f !== field)
+//       : [...selectedFields, field];
+//     onFieldSelection(updatedFields);
+//   };
+
+//   const handleAddCustomField = () => {
+//     if (newFieldName && !customFields.includes(newFieldName)) {
+//       setCustomFields([...customFields, newFieldName]);
+//       setNewFieldName('');
+//       handleFieldToggle(newFieldName);
+//     }
+//   };
+
+//   return (
+//     <Card>
+//       <CardTitle>Select Fields</CardTitle>
+//       {Object.entries(fields).map(([groupName, groupFields]) => (
+//         <FieldGroup key={groupName}>
+//           <FieldGroupTitle>{groupName}</FieldGroupTitle>
+//           <FieldList>
+//             {groupFields.map((field) => (
+//               <FieldItem key={field}>
+//                 <FieldCheckbox
+//                   type="checkbox"
+//                   id={field}
+//                   checked={selectedFields.includes(field)}
+//                   onChange={() => handleFieldToggle(field)}
+//                 />
+//                 <FieldLabel htmlFor={field}>{field}</FieldLabel>
+//               </FieldItem>
+//             ))}
+//           </FieldList>
+//         </FieldGroup>
+//       ))}
+//       <FieldGroup>
+//         <FieldGroupTitle>Custom Fields</FieldGroupTitle>
+//         <FieldList>
+//           {customFields.map((field) => (
+//             <FieldItem key={field}>
+//               <FieldCheckbox
+//                 type="checkbox"
+//                 id={field}
+//                 checked={selectedFields.includes(field)}
+//                 onChange={() => handleFieldToggle(field)}
+//               />
+//               <FieldLabel htmlFor={field}>{field}</FieldLabel>
+//             </FieldItem>
+//           ))}
+//         </FieldList>
+//         <CustomFieldInput
+//           type="text"
+//           value={newFieldName}
+//           onChange={(e) => setNewFieldName(e.target.value)}
+//           placeholder="Enter new field name"
+//         />
+//         <PlusButton onClick={handleAddCustomField}>+</PlusButton>
+//       </FieldGroup>
+//     </Card>
+//   );
+// };
+
+// export default FieldSelector;
+
+
+
+
+
+
+
 // import React from 'react';
 // import styled from 'styled-components';
-// import { DataGrid } from '@mui/x-data-grid';
 // import { Card, CardTitle } from './styles/CommonStyles';
 
-// const StyledDataGrid = styled(DataGrid)`
-//   .MuiDataGrid-root {
-//     border: none;
-//   }
-//   .MuiDataGrid-cell {
-//     border-bottom: 1px solid #f0f0f0;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//     text-align: center;
-//   }
-//   .MuiDataGrid-columnHeaders {
-//     background-color: #f8f9fa;
-//     border-bottom: 2px solid #007bff;
-//   }
-//   .MuiDataGrid-columnHeader {
-//     font-weight: bold;
-//     display: flex;
-//     align-items: center;
-//     justify-content: center;
-//   }
-//   .MuiDataGrid-columnHeaderTitle {
-//     text-align: center;
-//     width: 100%;
-//   }
-//   .MuiCheckbox-root {
-//     padding: 4px;
-//   }
-//   .MuiDataGrid-columnSeparator {
-//     display: none;
-//   }
-//   .MuiDataGrid-cell:focus,
-//   .MuiDataGrid-cell:focus-within {
-//     outline: none;
-//   }
+// const FieldGroup = styled.div`
+//   margin-bottom: 20px;
 // `;
 
-// const DataGridCard = styled(Card)`
+// const FieldGroupTitle = styled.h3`
+//   font-size: 18px;
+//   color: #333;
+//   margin-bottom: 10px;
+// `;
+
+// const FieldList = styled.ul`
+//   list-style-type: none;
 //   padding: 0;
-//   overflow: hidden;
 // `;
 
-// const availableFields = [
-//   { field: 'name', headerName: 'Name', width: 150, flex: 1 },
-//   { field: 'email', headerName: 'Email', width: 200, flex: 1 },
-//   { field: 'jobTitle', headerName: 'Job Title', width: 150, flex: 1 },
-//   { field: 'experience', headerName: 'Experience (years)', width: 150, type: 'number', flex: 1 },
-//   { field: 'skills', headerName: 'Skills', width: 200, flex: 1 },
-// ];
+// const FieldItem = styled.li`
+//   margin-bottom: 5px;
+// `;
 
-// const FieldSelector = ({ randomData, onFieldSelection }) => (
-//   <DataGridCard>
-//     <CardTitle>Select Fields</CardTitle>
-//     <StyledDataGrid
-//       rows={randomData}
-//       columns={availableFields}
-//       pageSize={10}
-//       rowsPerPageOptions={[5, 10, 20]}
-//       checkboxSelection
-//       onSelectionModelChange={onFieldSelection}
-//       autoHeight
-//     />
-//   </DataGridCard>
+// const FieldCheckbox = styled.input`
+//   margin-right: 10px;
+// `;
+
+// const FieldLabel = styled.label`
+//   font-size: 14px;
+//   color: #444;
+// `;
+
+// const FieldSelector = ({ fields, onFieldSelection }) => (
+//     <Card>
+//       <CardTitle>Select Fields</CardTitle>
+//       {Object.entries(fields).map(([groupName, groupFields]) => (
+//         <FieldGroup key={groupName}>
+//           <FieldGroupTitle>{groupName}</FieldGroupTitle>
+//           <FieldList>
+//             {groupFields.map((field) => (
+//               <FieldItem key={field}>
+//                 <FieldCheckbox
+//                   type="checkbox"
+//                   id={field}
+//                   onChange={(e) => onFieldSelection(field, e.target.checked)}
+//                 />
+//                 <FieldLabel htmlFor={field}>{field}</FieldLabel>
+//               </FieldItem>
+//             ))}
+//           </FieldList>
+//         </FieldGroup>
+//       ))}
+//     </Card>
 // );
 
 // export default FieldSelector;
+

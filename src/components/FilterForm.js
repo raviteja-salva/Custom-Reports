@@ -1,7 +1,7 @@
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import styled from 'styled-components';
-import { Card, CardTitle, Form, Input, Button } from './styles/CommonStyles';
+import { Card, CardTitle, Form, Input, Button, StyledSelect } from './styles/CommonStyles';
 
 const FilterGroup = styled.div`
   margin-bottom: 20px;
@@ -39,14 +39,14 @@ const FilterForm = ({ control, onSubmit }) => (
           control={control}
           defaultValue=""
           render={({ field }) => (
-            <select {...field}>
+            <StyledSelect {...field}>
               <option value="">All</option>
               <option value="New">New</option>
               <option value="In Progress">In Progress</option>
               <option value="Interview Scheduled">Interview Scheduled</option>
               <option value="Hired">Hired</option>
               <option value="Rejected">Rejected</option>
-            </select>
+            </StyledSelect>
           )}
         />
       </FilterGroup>

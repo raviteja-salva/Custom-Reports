@@ -32,8 +32,9 @@ export const Input = styled.input`
   border: 1px solid #ccc;
   border-radius: 6px;
   font-size: 16px;
+  width:40%;
   transition: border-color 0.3s ease;
-
+  margin-right:20px;
   &:focus {
     outline: none;
     border-color: #007bff;
@@ -46,11 +47,32 @@ export const Button = styled.button`
   color: #fff;
   border: none;
   border-radius: 6px;
+  width:20%;
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.1s ease;
   font-size: 16px;
   font-weight: bold;
 
+  &:hover {
+    background-color: #0056b3;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+`;
+
+export const PlusButton = styled.button`
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 100px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  font-size: 18px;
+  font-weight: bold;
+  height:30px;
+  width:30px;
   &:hover {
     background-color: #0056b3;
   }
@@ -84,14 +106,28 @@ export const TextArea = styled.textarea`
   }
 `;
 
-export const Select = styled.select`
-  width: 100%;
+export const StyledSelect = styled.select`
+  width: 50%;
   padding: 10px;
-  margin-bottom: 15px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 14px;
-  background-color: white;
-  appearance: none;
-  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%20");
+  background-color: #fff;
+  font-size: 16px;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: #007bff;
+  }
+
+  &:hover {
+    border-color: #007bff;
+  }
+
+  option {
+    background-color: #fff;
+    color: #333;
+    padding: 10px;
+  }
 `;

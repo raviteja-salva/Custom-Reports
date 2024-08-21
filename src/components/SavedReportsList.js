@@ -15,16 +15,17 @@ const SavedReportName = styled.p`
   margin-bottom: 10px;
 `;
 
-const SavedReportsList = ({ savedReports, onExport }) => (
+const SavedReportsList = ({ savedReports, onExport, onDelete }) => (
   <Card>
     <CardTitle>Saved Reports</CardTitle>
-    {savedReports.map((report, index) => (
-      <SavedReportItem key={index}>
+    {savedReports.map((report) => (
+      <SavedReportItem key={report.id}>
         <SavedReportName>{report.name}</SavedReportName>
         <ButtonGroup>
-          <Button onClick={() => onExport('pdf')}>Export PDF</Button>
-          <Button onClick={() => onExport('excel')}>Export Excel</Button>
-          <Button onClick={() => onExport('csv')}>Export CSV</Button>
+          <Button onClick={() => onDelete(report.id)}>Delete</Button>
+          <Button onClick={() => onExport('pdf', report)}>Export PDF</Button>
+          <Button onClick={() => onExport('excel', report)}>Export Excel</Button>
+          <Button onClick={() => onExport('csv', report)}>Export CSV</Button>
         </ButtonGroup>
       </SavedReportItem>
     ))}
