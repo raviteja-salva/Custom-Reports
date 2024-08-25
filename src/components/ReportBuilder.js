@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import axios from 'axios';
 import { generateRandomData, recruitmentFields } from './utils/dataUtils';
 import { GlobalStyle, Container, Title } from './styles/GlobalStyles';
 import FieldSelector from './FieldSelector';
@@ -11,6 +12,8 @@ import SavedReportsList from './SavedReportsList';
 import { saveAs } from 'file-saver';
 import { utils, write } from 'xlsx';
 import jsPDF from 'jspdf';
+
+const API_BASE_URL = 'https://custom-reports-server.onrender.com/api';
 
 const ReportBuilder = () => {
   const [selectedFields, setSelectedFields] = useState([]);
@@ -26,15 +29,23 @@ const ReportBuilder = () => {
 
   useEffect(() => {
     setRandomData(generateRandomData(100));
-    const loadedReports = JSON.parse(localStorage.getItem('savedReports') || '[]');
-    setSavedReports(loadedReports);
+    fetchReports();
   }, []);
 
   useEffect(() => {
     const loadedTemplates = JSON.parse(localStorage.getItem('fieldTemplates') || '[]');
     setSavedTemplates(loadedTemplates);
   }, []);
-  
+
+  const fetchReports = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/reports`);
+      setSavedReports(response.data);
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+    }
+  };
+
   const handleSaveTemplate = (templateName, fields) => {
     const newTemplate = { name: templateName, fields };
     const updatedTemplates = [...savedTemplates, newTemplate];
@@ -49,23 +60,19 @@ const ReportBuilder = () => {
     }
   };
 
-  const handleFieldSelection = (fields) => {
-    setSelectedFields(fields);
-  };
-
   const applyFilters = (data) => {
     setFilters(data);
     handlePreviewReport(data);
   };
 
-  const handleSaveReport = (data) => {
+  const handleSaveReport = async (data) => {
     if (!data.reportName.trim()) {
       alert("Report name cannot be empty.");
       return;
     }
 
     const isDuplicateName = savedReports.some(report => 
-      report.name.toLowerCase() === data.reportName.toLowerCase() && report.id !== editingReport?.id
+      report.name.toLowerCase() === data.reportName.toLowerCase() && report._id !== editingReport?._id
     );
 
     if (isDuplicateName) {
@@ -73,36 +80,44 @@ const ReportBuilder = () => {
       return;
     }
 
-    if (editingReport) {
-      const updatedReports = savedReports.map(report =>
-        report.id === editingReport.id ? { ...report, name: data.reportName } : report
-      );
-      setSavedReports(updatedReports);
-      setEditingReport(null);
-    } else {
-      const reportConfig = {
-        id: Date.now(),
-        name: data.reportName,
-        fields: selectedFields,
-        filters,
-        chartType,
-      };
-      setSavedReports([...savedReports, reportConfig]);
-    }
+    const reportConfig = {
+      name: data.reportName,
+      fields: selectedFields,
+      filters,
+      chartType,
+    };
 
-    localStorage.setItem('savedReports', JSON.stringify(savedReports));
-    reset();
+    try {
+      if (editingReport) {
+        await axios.post(`${API_BASE_URL}/reports`, { ...reportConfig, _id: editingReport._id });
+      } else {
+        await axios.post(`${API_BASE_URL}/reports`, reportConfig);
+      }
+      fetchReports();
+      setEditingReport(null);
+      reset();
+    } catch (error) {
+      console.error('Error saving report:', error);
+      alert('Failed to save report. Please try again.');
+    }
   };
 
   const handleEditReport = (report) => {
     setEditingReport(report);
     setValue("reportName", report.name);
+    setSelectedFields(report.fields);
+    setFilters(report.filters);
+    setChartType(report.chartType);
   };
 
-  const handleDeleteReport = (reportId) => {
-    const updatedReports = savedReports.filter(report => report.id !== reportId);
-    setSavedReports(updatedReports);
-    localStorage.setItem('savedReports', JSON.stringify(updatedReports));
+  const handleDeleteReport = async (reportId) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/reports/${reportId}`);
+      fetchReports();
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Failed to delete report. Please try again.');
+    }
   };
 
   const handleScheduleReport = (data) => {
@@ -208,12 +223,6 @@ export default ReportBuilder;
 
 
 
-
-
-
-
-
-
 // import React, { useState, useEffect } from 'react';
 // import { useForm } from 'react-hook-form';
 // import { generateRandomData, recruitmentFields } from './utils/dataUtils';
@@ -236,8 +245,9 @@ export default ReportBuilder;
 //   const [savedReports, setSavedReports] = useState([]);
 //   const [randomData, setRandomData] = useState([]);
 //   const [savedTemplates, setSavedTemplates] = useState([]);
+//   const [editingReport, setEditingReport] = useState(null);
 
-//   const { control, handleSubmit, reset } = useForm();
+//   const { control, handleSubmit, reset, setValue } = useForm();
 
 //   useEffect(() => {
 //     setRandomData(generateRandomData(100));
@@ -264,31 +274,51 @@ export default ReportBuilder;
 //     }
 //   };
 
-//   const handleFieldSelection = (fields) => {
-//     setSelectedFields(fields);
-//   };
-
 //   const applyFilters = (data) => {
 //     setFilters(data);
 //     handlePreviewReport(data);
 //   };
 
 //   const handleSaveReport = (data) => {
-//     const reportConfig = {
-//       id: Date.now(),
-//       name: data.reportName,
-//       fields: selectedFields,
-//       filters,
-//       chartType,
-//     };
-    
-//     const updatedReports = [...savedReports, reportConfig];
-    
-//     setSavedReports(updatedReports);
-//     localStorage.setItem('savedReports', JSON.stringify(updatedReports));
+//     if (!data.reportName.trim()) {
+//       alert("Report name cannot be empty.");
+//       return;
+//     }
+
+//     const isDuplicateName = savedReports.some(report => 
+//       report.name.toLowerCase() === data.reportName.toLowerCase() && report.id !== editingReport?.id
+//     );
+
+//     if (isDuplicateName) {
+//       alert("A report with this name already exists. Please choose a unique name.");
+//       return;
+//     }
+
+//     if (editingReport) {
+//       const updatedReports = savedReports.map(report =>
+//         report.id === editingReport.id ? { ...report, name: data.reportName } : report
+//       );
+//       setSavedReports(updatedReports);
+//       setEditingReport(null);
+//     } else {
+//       const reportConfig = {
+//         id: Date.now(),
+//         name: data.reportName,
+//         fields: selectedFields,
+//         filters,
+//         chartType,
+//       };
+//       setSavedReports([...savedReports, reportConfig]);
+//     }
+
+//     localStorage.setItem('savedReports', JSON.stringify(savedReports));
 //     reset();
 //   };
-  
+
+//   const handleEditReport = (report) => {
+//     setEditingReport(report);
+//     setValue("reportName", report.name);
+//   };
 
 //   const handleDeleteReport = (reportId) => {
 //     const updatedReports = savedReports.filter(report => report.id !== reportId);
@@ -300,8 +330,8 @@ export default ReportBuilder;
 //     console.log('Scheduling report:', data);
 //   };
 
-//   const handleExport = (format) => {
-//     const reportData = previewData || randomData;
+//   const handleExport = (format, report) => {
+//     const reportData = report ? randomData.filter(item => report.fields.every(field => item[field])) : (previewData || randomData);
     
 //     if (format === 'pdf') {
 //       const doc = new jsPDF();
@@ -354,12 +384,12 @@ export default ReportBuilder;
 //       <Container>
 //         <Title>Custom Reports</Title>
 //         <FieldSelector
-//             fields={recruitmentFields}
-//             selectedFields={selectedFields}
-//             onFieldSelection={setSelectedFields}
-//             savedTemplates={savedTemplates}
-//             onSaveTemplate={handleSaveTemplate}
-//             onSelectTemplate={handleSelectTemplate}
+//           fields={recruitmentFields}
+//           selectedFields={selectedFields}
+//           onFieldSelection={setSelectedFields}
+//           savedTemplates={savedTemplates}
+//           onSaveTemplate={handleSaveTemplate}
+//           onSelectTemplate={handleSelectTemplate}
 //         />
 //         <FilterForm
 //           control={control}
@@ -375,6 +405,7 @@ export default ReportBuilder;
 //           control={control}
 //           onSubmit={handleSubmit(handleSaveReport)}
 //           onPreview={handlePreviewReport}
+//           editingReport={editingReport}
 //         />
 //         <ScheduleReportForm
 //           control={control}
@@ -384,6 +415,7 @@ export default ReportBuilder;
 //           savedReports={savedReports}
 //           onExport={handleExport}
 //           onDelete={handleDeleteReport}
+//           onEdit={handleEditReport}
 //         />
 //       </Container>
 //     </>
@@ -391,4 +423,5 @@ export default ReportBuilder;
 // };
 
 // export default ReportBuilder;
+
 
