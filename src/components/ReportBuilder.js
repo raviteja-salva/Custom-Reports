@@ -20,8 +20,9 @@ const ReportBuilder = () => {
   const [savedReports, setSavedReports] = useState([]);
   const [randomData, setRandomData] = useState([]);
   const [savedTemplates, setSavedTemplates] = useState([]);
+  const [editingReport, setEditingReport] = useState(null);
 
-  const { control, handleSubmit, reset } = useForm();
+  const { control, handleSubmit, reset, setValue } = useForm();
 
   useEffect(() => {
     setRandomData(generateRandomData(100));
@@ -58,21 +59,45 @@ const ReportBuilder = () => {
   };
 
   const handleSaveReport = (data) => {
-    const reportConfig = {
-      id: Date.now(),
-      name: data.reportName,
-      fields: selectedFields,
-      filters,
-      chartType,
-    };
-    
-    const updatedReports = [...savedReports, reportConfig];
-    
-    setSavedReports(updatedReports);
-    localStorage.setItem('savedReports', JSON.stringify(updatedReports));
+    if (!data.reportName.trim()) {
+      alert("Report name cannot be empty.");
+      return;
+    }
+
+    const isDuplicateName = savedReports.some(report => 
+      report.name.toLowerCase() === data.reportName.toLowerCase() && report.id !== editingReport?.id
+    );
+
+    if (isDuplicateName) {
+      alert("A report with this name already exists. Please choose a unique name.");
+      return;
+    }
+
+    if (editingReport) {
+      const updatedReports = savedReports.map(report =>
+        report.id === editingReport.id ? { ...report, name: data.reportName } : report
+      );
+      setSavedReports(updatedReports);
+      setEditingReport(null);
+    } else {
+      const reportConfig = {
+        id: Date.now(),
+        name: data.reportName,
+        fields: selectedFields,
+        filters,
+        chartType,
+      };
+      setSavedReports([...savedReports, reportConfig]);
+    }
+
+    localStorage.setItem('savedReports', JSON.stringify(savedReports));
     reset();
   };
-  
+
+  const handleEditReport = (report) => {
+    setEditingReport(report);
+    setValue("reportName", report.name);
+  };
 
   const handleDeleteReport = (reportId) => {
     const updatedReports = savedReports.filter(report => report.id !== reportId);
@@ -81,12 +106,11 @@ const ReportBuilder = () => {
   };
 
   const handleScheduleReport = (data) => {
-    // Implement scheduling logic here
     console.log('Scheduling report:', data);
   };
 
-  const handleExport = (format) => {
-    const reportData = previewData || randomData;
+  const handleExport = (format, report) => {
+    const reportData = report ? randomData.filter(item => report.fields.every(field => item[field])) : (previewData || randomData);
     
     if (format === 'pdf') {
       const doc = new jsPDF();
@@ -137,14 +161,14 @@ const ReportBuilder = () => {
     <>
       <GlobalStyle />
       <Container>
-        <Title>Custom Recruitment Report Builder</Title>
+        <Title>Custom Reports</Title>
         <FieldSelector
-            fields={recruitmentFields}
-            selectedFields={selectedFields}
-            onFieldSelection={setSelectedFields}
-            savedTemplates={savedTemplates}
-            onSaveTemplate={handleSaveTemplate}
-            onSelectTemplate={handleSelectTemplate}
+          fields={recruitmentFields}
+          selectedFields={selectedFields}
+          onFieldSelection={setSelectedFields}
+          savedTemplates={savedTemplates}
+          onSaveTemplate={handleSaveTemplate}
+          onSelectTemplate={handleSelectTemplate}
         />
         <FilterForm
           control={control}
@@ -160,6 +184,7 @@ const ReportBuilder = () => {
           control={control}
           onSubmit={handleSubmit(handleSaveReport)}
           onPreview={handlePreviewReport}
+          editingReport={editingReport}
         />
         <ScheduleReportForm
           control={control}
@@ -169,6 +194,7 @@ const ReportBuilder = () => {
           savedReports={savedReports}
           onExport={handleExport}
           onDelete={handleDeleteReport}
+          onEdit={handleEditReport}
         />
       </Container>
     </>
@@ -176,8 +202,6 @@ const ReportBuilder = () => {
 };
 
 export default ReportBuilder;
-
-
 
 
 
@@ -211,7 +235,7 @@ export default ReportBuilder;
 //   const [previewData, setPreviewData] = useState(null);
 //   const [savedReports, setSavedReports] = useState([]);
 //   const [randomData, setRandomData] = useState([]);
-//   const [editingReport, setEditingReport] = useState(null);
+//   const [savedTemplates, setSavedTemplates] = useState([]);
 
 //   const { control, handleSubmit, reset } = useForm();
 
@@ -221,52 +245,50 @@ export default ReportBuilder;
 //     setSavedReports(loadedReports);
 //   }, []);
 
-//   const handleFieldSelection = (params) => {
-//     setSelectedFields(params);
+//   useEffect(() => {
+//     const loadedTemplates = JSON.parse(localStorage.getItem('fieldTemplates') || '[]');
+//     setSavedTemplates(loadedTemplates);
+//   }, []);
+  
+//   const handleSaveTemplate = (templateName, fields) => {
+//     const newTemplate = { name: templateName, fields };
+//     const updatedTemplates = [...savedTemplates, newTemplate];
+//     setSavedTemplates(updatedTemplates);
+//     localStorage.setItem('fieldTemplates', JSON.stringify(updatedTemplates));
+//   };
+
+//   const handleSelectTemplate = (templateName) => {
+//     const template = savedTemplates.find(t => t.name === templateName);
+//     if (template) {
+//       setSelectedFields(template.fields);
+//     }
+//   };
+
+//   const handleFieldSelection = (fields) => {
+//     setSelectedFields(fields);
 //   };
 
 //   const applyFilters = (data) => {
 //     setFilters(data);
-//     const filteredData = randomData.filter(item => {
-//       if (data.experienceMin && item.experience < parseInt(data.experienceMin)) return false;
-//       if (data.experienceMax && item.experience > parseInt(data.experienceMax)) return false;
-//       if (data.skills && !data.skills.split(',').some(skill => item.skills.includes(skill.trim()))) return false;
-//       return true;
-//     });
-//     setPreviewData(filteredData);
+//     handlePreviewReport(data);
 //   };
 
 //   const handleSaveReport = (data) => {
 //     const reportConfig = {
-//       id: editingReport ? editingReport.id : Date.now(),
+//       id: Date.now(),
 //       name: data.reportName,
 //       fields: selectedFields,
 //       filters,
 //       chartType,
 //     };
     
-//     let updatedReports;
-//     if (editingReport) {
-//       updatedReports = savedReports.map(report => 
-//         report.id === editingReport.id ? reportConfig : report
-//       );
-//     } else {
-//       updatedReports = [...savedReports, reportConfig];
-//     }
+//     const updatedReports = [...savedReports, reportConfig];
     
 //     setSavedReports(updatedReports);
 //     localStorage.setItem('savedReports', JSON.stringify(updatedReports));
-//     setEditingReport(null);
 //     reset();
 //   };
-
-//   const handleEditReport = (report) => {
-//     setEditingReport(report);
-//     setSelectedFields(report.fields);
-//     setFilters(report.filters);
-//     setChartType(report.chartType);
-//     reset({ reportName: report.name });
-//   };
+  
 
 //   const handleDeleteReport = (reportId) => {
 //     const updatedReports = savedReports.filter(report => report.id !== reportId);
@@ -275,7 +297,6 @@ export default ReportBuilder;
 //   };
 
 //   const handleScheduleReport = (data) => {
-//     // Implement scheduling logic here
 //     console.log('Scheduling report:', data);
 //   };
 
@@ -302,26 +323,43 @@ export default ReportBuilder;
 //     }
 //   };
 
-//   const handlePreviewReport = () => {
+//   const handlePreviewReport = (currentFilters = filters) => {
 //     const filteredData = randomData.filter(item => {
-//       // Apply the same filtering logic as in applyFilters
-//       if (filters.experienceMin && item.experience < parseInt(filters.experienceMin)) return false;
-//       if (filters.experienceMax && item.experience > parseInt(filters.experienceMax)) return false;
-//       if (filters.skills && !filters.skills.split(',').some(skill => item.skills.includes(skill.trim()))) return false;
+//       for (const [key, value] of Object.entries(currentFilters)) {
+//         if (value && item[key] !== undefined) {
+//           if (typeof value === 'string' && !item[key].toLowerCase().includes(value.toLowerCase())) {
+//             return false;
+//           } else if (typeof value === 'number' && item[key] !== value) {
+//             return false;
+//           }
+//         }
+//       }
 //       return true;
 //     });
-//     setPreviewData(filteredData);
+    
+//     const previewDataWithSelectedFields = filteredData.map(item => {
+//       const selectedData = {};
+//       selectedFields.forEach(field => {
+//         selectedData[field] = item[field];
+//       });
+//       return selectedData;
+//     });
+    
+//     setPreviewData(previewDataWithSelectedFields);
 //   };
 
 //   return (
 //     <>
 //       <GlobalStyle />
 //       <Container>
-//         <Title>Custom Recruitment Report Builder</Title>
+//         <Title>Custom Reports</Title>
 //         <FieldSelector
-//           fields={recruitmentFields}
-//           selectedFields={selectedFields}
-//           onFieldSelection={handleFieldSelection}
+//             fields={recruitmentFields}
+//             selectedFields={selectedFields}
+//             onFieldSelection={setSelectedFields}
+//             savedTemplates={savedTemplates}
+//             onSaveTemplate={handleSaveTemplate}
+//             onSelectTemplate={handleSelectTemplate}
 //         />
 //         <FilterForm
 //           control={control}
@@ -337,7 +375,6 @@ export default ReportBuilder;
 //           control={control}
 //           onSubmit={handleSubmit(handleSaveReport)}
 //           onPreview={handlePreviewReport}
-//           editingReport={editingReport}
 //         />
 //         <ScheduleReportForm
 //           control={control}
@@ -346,7 +383,6 @@ export default ReportBuilder;
 //         <SavedReportsList
 //           savedReports={savedReports}
 //           onExport={handleExport}
-//           onEdit={handleEditReport}
 //           onDelete={handleDeleteReport}
 //         />
 //       </Container>
@@ -355,10 +391,4 @@ export default ReportBuilder;
 // };
 
 // export default ReportBuilder;
-
-
-
-
-
-
 
